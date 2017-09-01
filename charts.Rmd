@@ -20,7 +20,8 @@ library("gridExtra")
 ```{r data, include=TRUE}
 #set up data starting from simple data table
 
-Raw_Data <- read_excel("C:/Users/Kevin Little/Dropbox/RescueDesk_Informing Ecological Design/170729 Deming Control/Raw Data.xlsx", 
+#use data file in this repository
+Raw_Data <- read_excel("YOUR DIRECTORY LOCATION/Raw Data Table.xlsx", 
                        sheet = "data_table")
 
 df0 <- as.data.frame(Raw_Data)
