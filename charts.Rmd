@@ -1,0 +1,111 @@
+---
+title: "Control Chart Examples"
+author: "Kevin Little, Ph.D."
+date: "August 29, 2017"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#set up packages
+library("readxl")
+library("ggplot2")
+library("GGally")
+library("gridExtra")
+```
+
+
+```{r data, include=TRUE}
+#set up data starting from simple data table
+
+Raw_Data <- read_excel("C:/Users/Kevin Little/Dropbox/RescueDesk_Informing Ecological Design/170729 Deming Control/Raw Data.xlsx", 
+                       sheet = "data_table")
+
+df0 <- as.data.frame(Raw_Data)
+names(df0)[2] <- "No_Show_Count"
+names(df0)[4] <- "No_Show_Rate"
+df0$Month <- as.Date(df0$Month)
+df0$pi <- df0$No_Show_Count/df0$Patients
+
+#compute binomial limits
+df0$qi <- 1 - df0$pi
+p_bar <- p_bar <-sum(df0$No_Show_Count)/sum(df0$Patients)
+df0$sigma_pi <- sqrt(p_bar*(1-p_bar)/df0$Patients)
+df0$p_UCL <- p_bar + 3*df0$sigma_pi
+df0$p_LCL <- p_bar - 3*df0$sigma_pi
+#compute z scores and assess variation in z scores
+df0$zi <- (df0$pi - p_bar)/df0$sigma_pi
+Rzi <- abs(diff(df0$zi))
+sigma_zi <- mean(Rzi)/1.128
+df0$Laney_sigma <- df0$sigma_pi*sigma_zi
+df0$pprime_LCL <- p_bar - 3*df0$Laney_sigma
+df0$pprime_UCL <- p_bar + 3*df0$Laney_sigma
+#compute I chart values
+p_barI <- mean(df0$pi)  #assumes equal weighting of the Lot proportions
+Rpi <- abs(diff(df0$pi))
+sigma_aver_Rpi <- mean(Rpi)/1.128
+sigma_median_Rpi <- median(Rpi)/0.9554
+
+knitr::kable(df0, align = 'c', digits=3)
+```
+
+```{r plots1, include=TRUE, fig.width=6, fig.height=4}
+
+pchart <- ggplot(data=df0,aes(x=Month,y=100*pi)) +
+              theme_bw()+
+              geom_point(size=rel(2))+
+              geom_line()+
+              labs(title="p control chart for Clinic A",
+                   x="Month",
+                   y="Per cent No Show",
+                   subtitle="Limits based on binomial variation, scaled by n in each month") +
+              geom_hline(yintercept=100*p_bar)+
+              geom_line(aes(x=Month,y=100*p_LCL),linetype='dashed')+
+              geom_line(aes(x=Month,y=100*p_UCL),linetype='dashed')+
+              ylim(10,40)
+
+pchart
+
+#ichart
+ichart <-ggplot(data=df0,aes(x=Month,y=100*pi)) +
+            theme_bw()+
+            geom_point(size=rel(2))+
+            geom_line()+
+            labs(title="Individuals control chart for Clinic A",
+                 x="Month",
+                 y="Per cent No Show") +
+            geom_hline(yintercept=100*p_barI)+
+            ylim(10,40)
+            
+ichart_Median <- ichart+ geom_line(aes(x=Month,y=100*(p_barI -          3*sigma_median_Rpi)),linetype='dashed')+
+            geom_line(aes(x=Month,y=100*(p_barI + 3*sigma_median_Rpi)),linetype='dashed')+
+            labs(subtitle="Limits based on median moving range")
+
+ichart_Median
+
+ichart_Mean <- ichart+ geom_line(aes(x=Month,y=100*(p_barI - 3*sigma_aver_Rpi)),linetype='dashed')+
+            geom_line(aes(x=Month,y=100*(p_barI + 3*sigma_aver_Rpi)),linetype='dashed') +
+            labs(subtitle="Limits based on average moving range")
+
+ichart_Mean
+
+#make p prime chart
+pprime_chart <-ggplot(data=df0,aes(x=Month,y=100*pi)) +
+      theme_bw()+
+      geom_point(size=rel(2))+
+      geom_line()+
+      labs(title="p' control chart for Clinic A",
+           x="Month",
+           y="Per cent No Show",
+           subtitle="Limits based on Laney calculations") +
+      geom_hline(yintercept=100*p_bar)+
+      geom_line(aes(x=Month,y=100*pprime_LCL),linetype='dashed')+
+      geom_line(aes(x=Month,y=100*pprime_UCL),linetype='dashed')+
+      ylim(10,40)
+  
+pprime_chart
+
+```
+
